@@ -21,18 +21,38 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Fetch IAM User ARN for github-action-user
+        id: fetch-arn
+        run: |
+          USER_ARN=$(aws iam get-user --user-name github-action-user --query 'User.Arn' --output text)
+          echo "USER_ARN=${USER_ARN}" >> $GITHUB_ENV
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/
+
+      - name: Install AWS IAM Authenticator
+        run: |
+          curl -Lo aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.6.2/aws-iam-authenticator_0.6.2_linux_amd64
+          chmod +x aws-iam-authenticator
+          sudo mv aws-iam-authenticator /usr/local/bin/
+
       - name: Update kubeconfig for EKS
         run: |
           aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.CLUSTER_NAME }}
 
-      - name: Add github-action-user to aws-auth ConfigMap
+      - name: Update aws-auth ConfigMap for GitHub Action User
+        env:
+          USER_ARN: ${{ env.USER_ARN }}
         run: |
           # Fetch the current aws-auth configmap and save it to a temporary file
           kubectl get configmap aws-auth -n kube-system -o yaml > aws-auth.yaml
-          
-          # Add the github-action-user to the configmap
+
+          # Add github-action-user to the configmap with system:masters access
           echo "
-          - rolearn: ${{ secrets.KUBERNETES_ROLE_ARN }}
+          - rolearn: ${USER_ARN}
             username: github-action-user
             groups:
             - system:masters
