@@ -21,6 +21,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.CLUSTER_NAME }}
+
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
@@ -30,11 +34,10 @@ jobs:
           docker tag ${{ secrets.ECR_REPOSITORY_FRONTEND }}:latest ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}
           docker push ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}
 
-
-      - name: Update Kubernetes manifests
+      - name: Update Kubernetes manifests and apply
         run: |
           cd frontend/k8s
           kustomize edit set image frontend=${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}
           kustomize build | kubectl apply -f -
-        env:
-          KUBECONFIG: ~/.kube/config
+
+
