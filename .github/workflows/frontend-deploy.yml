@@ -30,6 +30,7 @@ jobs:
           docker tag ${{ secrets.ECR_REPOSITORY_FRONTEND }}:latest ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}
           docker push ${{ secrets.ECR_REPOSITORY_FRONTEND }}:${{ github.sha }}
 
+
       - name: Update Kubernetes manifests
         run: |
           cd frontend/k8s
