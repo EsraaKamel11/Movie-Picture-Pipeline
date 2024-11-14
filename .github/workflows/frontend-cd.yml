@@ -1,0 +1,149 @@
+# Workflow name for the frontend continuous deployment pipeline
+name: Frontend Continuous Deployment
+
+# Triggers for the workflow
+on:
+  # Trigger the workflow on any push to the main branch
+  push:
+    branches:
+      - main
+  # Allow manual execution of the workflow through the GitHub Actions UI
+  workflow_dispatch:
+
+# Define jobs in the workflow
+jobs:
+  # Job to handle linting of the frontend code
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up the latest version of Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      # Cache Node.js modules to speed up workflow runs
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Install all necessary dependencies for the frontend application
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      # Run the linter to ensure code quality; fix issues if possible
+      - name: Run linter
+        run: cd frontend && npm run lint -- --fix
+
+  # Job to run tests for the frontend application
+  testing:
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up the latest version of Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      # Cache Node.js modules to speed up workflow runs
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Install all necessary dependencies for the frontend application
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      # Run the tests to validate functionality; the workflow will fail if any test fails
+      - name: Run tests
+        run: cd frontend && npm test
+
+  # Job to build and deploy the frontend application
+  build-and-deploy:
+    # This job depends on successful completion of linting and testing jobs
+    needs: [linting, testing]
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up the latest version of Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      # Cache Node.js modules to speed up workflow runs
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Install all necessary dependencies for the frontend application
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      # Set environment variable for the API URL to be used during the build
+      - name: Set environment variable for API URL
+        run: echo "REACT_APP_MOVIE_API_URL=${{ secrets.REACT_APP_MOVIE_API_URL }}" >> $GITHUB_ENV
+
+      # Configure AWS credentials using GitHub Secrets for secure access
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Log in to Amazon ECR to allow pushing the Docker image
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Build the Docker image for the frontend application with the API URL environment variable
+      - name: Build Docker image with SHA tag
+        env:
+          ECR_REPO_URL: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: cd frontend && docker build --build-arg REACT_APP_MOVIE_API_URL=$REACT_APP_MOVIE_API_URL -t $ECR_REPO_URL:$IMAGE_TAG .
+
+      # Push the built Docker image to the Amazon ECR repository
+      - name: Push Docker image to ECR
+        env:
+          ECR_REPO_URL: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker push $ECR_REPO_URL:$IMAGE_TAG
+
+      # Update kubeconfig to authenticate to the EKS cluster
+      - name: Update kubeconfig for EKS
+        run: aws eks update-kubeconfig --name ${{ secrets.CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
+
+      # Update Kubernetes manifests with the new Docker image tag
+      - name: Set image tag in Kubernetes manifests
+        env:
+          ECR_REPO_URL: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: cd frontend/k8s && kustomize edit set image frontend=$ECR_REPO_URL:$IMAGE_TAG
+
+      # Deploy the updated Kubernetes manifests to the EKS cluster
+      - name: Deploy application to EKS cluster
+        run: cd frontend/k8s && kustomize build | kubectl apply -f -

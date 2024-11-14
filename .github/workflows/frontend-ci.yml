@@ -1,63 +1,85 @@
+# Name of the workflow for the frontend continuous integration pipeline
 name: Frontend CI
 
+# Define the events that trigger this workflow
 on:
+  # Trigger the workflow on pull requests to the main branch, but only if changes are in the frontend directory
   pull_request:
     branches: [main]
     paths:
       - 'frontend/**'
+  # Allow manual triggering of the workflow using the workflow_dispatch event
   workflow_dispatch:
 
+# Define the jobs in the workflow
 jobs:
+  # Linting job to check code quality
   lint:
+    # Define the environment to run the job
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Checkout the code from the repository
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Step 2: Set up the specified version of Node.js for consistency across environments
       - name: Set up Node
         uses: actions/setup-node@v2
         with:
           node-version: '16'  # Adjust this to the version your project requires
 
+      # Step 3: Install dependencies using npm ci for a clean install based on package-lock.json
       - name: Install dependencies
         run: npm ci
         working-directory: frontend
 
+      # Step 4: Run the linter to enforce code quality standards
       - name: Run linter
         run: npm run lint
         working-directory: frontend
 
+  # Testing job to validate application functionality
   test:
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Checkout the code from the repository
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Step 2: Set up Node.js
       - name: Set up Node
         uses: actions/setup-node@v2
         with:
           node-version: '16'
 
+      # Step 3: Install dependencies for testing
       - name: Install dependencies
         run: npm ci
         working-directory: frontend
 
+      # Step 4: Run tests in CI mode to ensure they execute in a non-interactive environment
       - name: Run tests
         run: CI=true npm test
         working-directory: frontend
 
+  # Build job to create a Docker image for the frontend application
   build:
-    runs-on: ubuntu-latest
+    # Ensure this job runs only after the linting and testing jobs have completed successfully
     needs: [lint, test]
+    runs-on: ubuntu-latest
     steps:
+      # Step 1: Checkout the code from the repository
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Step 2: Set up Node.js
       - name: Set up Node
         uses: actions/setup-node@v2
         with:
           node-version: '16'
 
+      # Step 3: Build Docker image for the frontend application, passing an environment variable for the API URL
+      # This ensures the image is tagged with the Git commit SHA for versioning
       - name: Build Docker image
         run: docker build --build-arg REACT_APP_MOVIE_API_URL=http://localhost:5000 -t mp-frontend:${{ github.sha }} .
         working-directory: frontend

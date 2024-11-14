@@ -1,0 +1,48 @@
+# Name and description of the custom GitHub Action for setting up Python and ECR login
+name: "Setup Python & ECR Login"
+description: "Sets up Python environment, installs dependencies, and logs into ECR"
+
+# Define inputs required for this action
+inputs:
+  python-version:
+    description: "Python version to use"  # Specifies the version of Python to set up
+    required: true
+  ecr-repository:
+    description: "ECR repository URL"  # URL of the Amazon ECR repository for Docker images
+    required: true
+  aws-region:
+    description: "AWS region"  # AWS region where resources are located
+    required: true
+  aws-access-key-id:
+    description: "AWS Access Key ID"  # Access key ID for AWS credentials
+    required: true
+  aws-secret-access-key:
+    description: "AWS Secret Access Key"  # Secret access key for AWS credentials
+    required: true
+
+# Specify that this action is a composite action, which allows for multiple steps
+runs:
+  using: "composite"
+  steps:
+    # Step 1: Set up the specified Python version to ensure consistency in the environment
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    # Step 2: Install pipenv, a tool for managing Python dependencies in a virtual environment
+    - name: Install pipenv
+      run: pip install pipenv
+      shell: bash  # Specify bash shell to ensure compatibility with the commands
+
+    # Step 3: Configure AWS credentials to authenticate with AWS services
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v3
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.aws-region }}
+
+    # Step 4: Log in to Amazon ECR, allowing Docker commands to interact with the ECR repository
+    - name: Log in to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v2

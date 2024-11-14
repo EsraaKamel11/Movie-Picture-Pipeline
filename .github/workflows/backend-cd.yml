@@ -1,0 +1,135 @@
+# Workflow name for the backend continuous deployment pipeline
+name: Backend Continuous Deployment
+
+# Define the events that trigger this workflow
+on:
+  # Automatically run the workflow on pushes to the main branch
+  push:
+    branches:
+      - main
+  # Allow manual triggering of the workflow
+  workflow_dispatch:
+
+# Define the jobs in the workflow
+jobs:
+  # Linting job to check code quality
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Python environment and log in to ECR using a custom reusable action
+      - name: Setup Python and ECR Login
+        uses: ./.github/actions/setup-python-ecr
+        with:
+          python-version: '3.10'
+          ecr-repository: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Step 3: Install dependencies with pipenv for linting
+      - name: Install dependencies
+        run: pipenv install --dev
+        working-directory: backend
+
+      # Step 4: Run the linter to enforce code quality standards
+      - name: Run linter
+        run: pipenv run lint
+        working-directory: backend
+
+  # Testing job to validate application functionality
+  testing:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Python environment and log in to ECR using the custom action
+      - name: Setup Python and ECR Login
+        uses: ./.github/actions/setup-python-ecr
+        with:
+          python-version: '3.10'
+          ecr-repository: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Step 3: Install dependencies for running tests
+      - name: Install dependencies
+        run: pipenv install --dev
+        working-directory: backend
+
+      # Step 4: Run tests to validate functionality; job will fail if any test does not pass
+      - name: Run tests
+        run: pipenv run test
+        working-directory: backend
+
+  # Build and Deploy job to create a Docker image and deploy it to EKS
+  build-and-deploy:
+    # Ensure this job only runs after the linting and testing jobs are successful
+    needs: [linting, testing]
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: Checkout the code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Python environment and log in to ECR using the custom action
+      - name: Setup Python and ECR Login
+        uses: ./.github/actions/setup-python-ecr
+        with:
+          python-version: '3.10'
+          ecr-repository: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      # Step 3: Build Docker image for the backend application, tagged with the Git commit SHA for versioning
+      - name: Build Docker image with SHA tag
+        env:
+          ECR_REPO_URL: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: cd backend && docker build -t $ECR_REPO_URL:$IMAGE_TAG .
+
+      # Step 4: Push the Docker image to Amazon ECR to make it available for deployment
+      - name: Push Docker image to ECR
+        env:
+          ECR_REPO_URL: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker push $ECR_REPO_URL:$IMAGE_TAG
+
+      # Step 5: Update kubeconfig to allow kubectl commands to interact with the EKS cluster
+      - name: Update kubeconfig for EKS
+        run: aws eks update-kubeconfig --name ${{ secrets.CLUSTER_NAME }} --region ${{ secrets.AWS_REGION }}
+
+      # Step 6: Use kustomize to set the Docker image tag in Kubernetes manifests for deployment
+      - name: Set image tag in Kubernetes manifests
+        env:
+          ECR_REPO_URL: ${{ secrets.ECR_REPOSITORY_BACKEND }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: cd backend/k8s && kustomize edit set image backend=$ECR_REPO_URL:$IMAGE_TAG
+
+      # Step 7: Deploy the application to the EKS cluster using kubectl
+      - name: Deploy application to EKS cluster
+        run: cd backend/k8s && kustomize build | kubectl apply -f -
+
+      # Step 8: Comment on the Pull Request to notify that deployment was successful (if triggered by a PR)
+      - name: Comment on Pull Request
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request ? context.payload.pull_request.number : null;
+            if (prNumber) {
+              await github.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: "🎉 Backend deployment completed successfully! Docker image has been pushed to ECR and the application has been deployed to EKS."
+              });
+            }

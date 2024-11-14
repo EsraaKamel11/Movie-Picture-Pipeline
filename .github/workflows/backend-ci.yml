@@ -1,72 +1,113 @@
+# Workflow name for the backend continuous integration pipeline
 name: Backend CI
 
+# Define the events that trigger this workflow
 on:
+  # Automatically run the workflow on pull requests to the main branch, but only for changes in the backend directory
   pull_request:
     branches: [main]
     paths:
       - 'backend/**'
+  # Allow manual execution of the workflow using the workflow_dispatch event
   workflow_dispatch:
 
+# Define the jobs in the workflow
 jobs:
+  # Linting job to check code quality of the backend application
   lint:
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Checkout the code from the repository
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Step 2: Set up the specified Python version to ensure environment consistency
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.10'
 
+      # Step 3: Install pipenv for dependency management
       - name: Install pipenv
         run: pip install pipenv
 
+      # Step 4: Cache pipenv dependencies to speed up subsequent workflow runs
+      - name: Cache pipenv dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pipenv-
+
+      # Step 5: Install dependencies for development, including linters
       - name: Install dependencies
         run: pipenv install --dev
         working-directory: backend
 
+      # Step 6: Run the linter to enforce code quality standards and report any issues
       - name: Run linter
         run: pipenv run lint
         working-directory: backend
 
+  # Testing job to validate backend application functionality
   test:
     runs-on: ubuntu-latest
     steps:
+      # Step 1: Checkout the code from the repository
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Step 2: Set up the specified Python version for testing
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.10'
 
+      # Step 3: Install pipenv for dependency management
       - name: Install pipenv
         run: pip install pipenv
 
+      # Step 4: Cache pipenv dependencies to avoid re-installing them in each run
+      - name: Cache pipenv dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pipenv-
+
+      # Step 5: Install all dependencies, including test packages
       - name: Install dependencies
         run: pipenv install --dev
         working-directory: backend
 
+      # Step 6: Run the tests to validate functionality; the job will fail if any test fails
       - name: Run tests
         run: pipenv run test
         working-directory: backend
 
+  # Build job to create a Docker image for the backend application
   build:
-    runs-on: ubuntu-latest
+    # Ensure this job only runs if the linting and testing jobs succeed
     needs: [lint, test]
+    runs-on: ubuntu-latest
     steps:
+      # Step 1: Checkout the code from the repository
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Step 2: Set up the specified Python version for any required scripting during the build process
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.10'
 
+      # Step 3: Install pipenv to ensure consistency with other jobs
       - name: Install pipenv
         run: pip install pipenv
 
+      # Step 4: Build the Docker image for the backend application, tagged with the Git commit SHA for versioning
       - name: Build Docker image
         run: docker build -t mp-backend:${{ github.sha }} .
         working-directory: backend
