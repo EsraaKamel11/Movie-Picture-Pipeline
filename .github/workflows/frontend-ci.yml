@@ -1,9 +1,9 @@
 # Name of the workflow for the frontend continuous integration pipeline
-name: Frontend CI
+name: Frontend Continuous Integration
 
 # Define the events that trigger this workflow
 on:
-  # Trigger the workflow on pull requests to the main branch, but only if changes are in the frontend directory
+  # Trigger the workflow on pull requests to the main branch, specifically for changes in the frontend directory
   pull_request:
     branches: [main]
     paths:
@@ -26,14 +26,23 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v2
         with:
-          node-version: '16'  # Adjust this to the version your project requires
+          node-version: '16'
 
-      # Step 3: Install dependencies using npm ci for a clean install based on package-lock.json
+      # Step 3: Cache npm dependencies to speed up workflow runs
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Step 4: Install dependencies using npm ci for a clean install based on package-lock.json
       - name: Install dependencies
         run: npm ci
         working-directory: frontend
 
-      # Step 4: Run the linter to enforce code quality standards
+      # Step 5: Run the linter to enforce code quality standards
       - name: Run linter
         run: npm run lint
         working-directory: frontend
@@ -52,19 +61,28 @@ jobs:
         with:
           node-version: '16'
 
-      # Step 3: Install dependencies for testing
+      # Step 3: Cache npm dependencies to speed up workflow runs
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Step 4: Install dependencies for testing
       - name: Install dependencies
         run: npm ci
         working-directory: frontend
 
-      # Step 4: Run tests in CI mode to ensure they execute in a non-interactive environment
+      # Step 5: Run tests in CI mode to ensure they execute in a non-interactive environment
       - name: Run tests
         run: CI=true npm test
         working-directory: frontend
 
   # Build job to create a Docker image for the frontend application
   build:
-    # Ensure this job runs only after the linting and testing jobs have completed successfully
+    # Ensure this job only runs after the linting and testing jobs are successful
     needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
@@ -78,8 +96,27 @@ jobs:
         with:
           node-version: '16'
 
-      # Step 3: Build Docker image for the frontend application, passing an environment variable for the API URL
-      # This ensures the image is tagged with the Git commit SHA for versioning
-      - name: Build Docker image
-        run: docker build --build-arg REACT_APP_MOVIE_API_URL=http://localhost:5000 -t mp-frontend:${{ github.sha }} .
+      # Step 3: Cache npm dependencies to speed up workflow runs
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      # Step 4: Install dependencies
+      - name: Install dependencies
+        run: npm ci
         working-directory: frontend
+
+      # Set environment variable for the API URL to be used during the build
+      - name: Set environment variable for API URL
+        run: echo "REACT_APP_MOVIE_API_URL=${{ secrets.REACT_APP_MOVIE_API_URL }}" >> $GITHUB_ENV
+
+      # Step 6: Build Docker image for the frontend application with the API URL environment variable
+      - name: Build Docker image
+        env:
+          ECR_REPO_URL: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: cd frontend && docker build --build-arg REACT_APP_MOVIE_API_URL=$REACT_APP_MOVIE_API_URL -t $ECR_REPO_URL:$IMAGE_TAG .
