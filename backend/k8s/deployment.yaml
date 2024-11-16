@@ -18,4 +18,4 @@ spec:
         - name: backend
           image: backend
           ports:
-            - containerPort: 5000
+            - containerPort: 80
