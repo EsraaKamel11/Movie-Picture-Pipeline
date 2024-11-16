@@ -107,7 +107,7 @@ jobs:
       - name: Install pipenv
         run: pip install pipenv
 
-      # Step 4: Build the Docker image for the backend application, tagged with the Git commit SHA for versioning
+      # Step 4: Build the Docker image for the backend application.
       - name: Build Docker image
-        run: docker build -t mp-backend:${{ github.sha }} .
+        run: docker build -t mp-backend:latest .
         working-directory: backend
