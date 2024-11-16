@@ -18,4 +18,4 @@ spec:
         - name: frontend
           image: frontend
           ports:
-            - containerPort: 80
+            - containerPort: 3000
