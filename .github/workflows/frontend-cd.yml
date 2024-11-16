@@ -105,7 +105,7 @@ jobs:
 
       # Set environment variable for the API URL to be used during the build
       - name: Set environment variable for API URL
-        run: echo "REACT_APP_MOVIE_API_URL=${{ secrets.REACT_APP_MOVIE_API_URL }}" >> $GITHUB_ENV
+        run: REACT_APP_MOVIE_API_URL=http://a530910d939c941b4805a60dda5954e6-1317199407.us-east-2.elb.amazonaws.com
 
       # Configure AWS credentials using GitHub Secrets for secure access
       - name: Configure AWS credentials
