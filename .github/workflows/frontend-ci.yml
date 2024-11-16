@@ -117,6 +117,8 @@ jobs:
       # Step 6: Build Docker image for the frontend application with the API URL environment variable
       - name: Build Docker image
         env:
-          ECR_REPO_URL: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
           IMAGE_TAG: ${{ github.sha }}
-        run: cd frontend && docker build --build-arg REACT_APP_MOVIE_API_URL=$REACT_APP_MOVIE_API_URL -t $ECR_REPO_URL:$IMAGE_TAG .
+        run: cd frontend && docker build --build-arg REACT_APP_MOVIE_API_URL=$REACT_APP_MOVIE_API_URL -t mp-frontend:$IMAGE_TAG .
+        
+      - name: Run docker container
+        run: cd frontend && docker run --name mp-frontend -p 3000:3000 -d mp-frontend
