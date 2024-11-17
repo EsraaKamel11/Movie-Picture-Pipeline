@@ -104,8 +104,8 @@ jobs:
         run: cd frontend && npm ci
 
       # Set environment variable for the API URL to be used during the build
-      - name: Set environment variable for API URL
-        run: REACT_APP_MOVIE_API_URL=http://a530910d939c941b4805a60dda5954e6-1317199407.us-east-2.elb.amazonaws.com
+      #- name: Set environment variable for API URL
+      #  run: REACT_APP_MOVIE_API_URL=${{ secrets.REACT_APP_MOVIE_API_URL }}" >> $GITHUB_ENV
 
       # Configure AWS credentials using GitHub Secrets for secure access
       - name: Configure AWS credentials
@@ -124,7 +124,7 @@ jobs:
         env:
           ECR_REPO_URL: ${{ secrets.ECR_REPOSITORY_FRONTEND }}
           IMAGE_TAG: ${{ github.sha }}
-        run: cd frontend && docker build --build-arg REACT_APP_MOVIE_API_URL=$REACT_APP_MOVIE_API_URL -t $ECR_REPO_URL:$IMAGE_TAG .
+        run: cd frontend && docker build --build-arg REACT_APP_MOVIE_API_URL=http://a047b186f6ea14d1a8e4badb37b92a84-2063208108.us-east-2.elb.amazonaws.com -t $ECR_REPO_URL:$IMAGE_TAG .
 
       # Push the built Docker image to the Amazon ECR repository
       - name: Push Docker image to ECR
