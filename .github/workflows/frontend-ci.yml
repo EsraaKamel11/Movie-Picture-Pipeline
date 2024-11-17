@@ -110,10 +110,6 @@ jobs:
         run: npm ci
         working-directory: frontend
 
-      # Set environment variable for the API URL to be used during the build
-      - name: Set environment variable for API URL
-        run: echo "REACT_APP_MOVIE_API_URL=${{ secrets.REACT_APP_MOVIE_API_URL }}" >> $GITHUB_ENV
-
       # Step 6: Build Docker image for the frontend application with the API URL environment variable
       - name: Build Docker image
-        run: cd frontend && docker build --build-arg REACT_APP_MOVIE_API_URL=$REACT_APP_MOVIE_API_URL -t mp-frontend:latest .
+        run: cd frontend && docker build --build-arg REACT_APP_MOVIE_API_URL=http://localhost:5000 -t mp-frontend:latest .
