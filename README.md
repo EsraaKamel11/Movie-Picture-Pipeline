@@ -38,7 +38,7 @@ The CI-CD-MoviePicture-Pipeline is a comprehensive data processing pipeline desi
 - **Version Control:** Git, GitHub
 
 ## CI/CD Pipeline
-As the CI/CD Pipeline Engineer for this project, I implemented a robust and efficient pipeline that ensures seamless integration and continuous deployment of the application. Key components include:
+As the DevOps Engineer for this project, I implemented a robust and efficient pipeline that ensures seamless integration and continuous deployment of the application. Key components include:
 
 - **Automated Testing:** Leveraging GitHub Actions to run unit tests, integration tests, and linting on every commit and pull request.
 - **Build Automation:** Using Docker to containerize the application, ensuring consistency across development, staging, and production environments.
