@@ -123,7 +123,10 @@ tfenv use 1.3.9
 cd /workspace/setup/terraform
 terraform init
 ```
-![Terraform Initialized](Screenshots/confirm-terraform-setup-and-initialized.jpeg)
+
+<p align="center">
+  <img src="Screenshots/confirm-terraform-setup-and-initialized.jpeg" alt="Terraform Initialized">
+</p>
 
 ### Step 2: Create an administrator user in AWS
 
@@ -149,6 +152,14 @@ terraform init
    ```
 
 3. When successful, you should see references to the created components in your terminal.
+
+<p align="center">
+  <img src="Screenshots/error-terraform_apply-federated_user.jpeg" alt="Error: Terraform Apply with Federated User">
+</p>
+
+<p align="center">
+  <img src="Screenshots/success-terraform_apply-new_user.jpeg" alt="Success: Terraform Apply with New User">
+</p>
 
    **Note:** If you encounter issues, it may be because you ran `terraform apply` as a Udacity federated user account. Follow Step 3 above to create a new user and re-run `terraform apply` as the newly created user.
 
