@@ -35,14 +35,11 @@ These workflows only run if there are changes in the `backend` folder.
 
 ### Jobs
 
-1. **Lint:**
-   - Uses `pipenv run lint` to check code quality.
+1. **Lint:** Uses `pipenv run lint` to check code quality.
 
-2. **Test:**
-   - Uses `pipenv run test` to run the Python tests.
+2. **Test:** Uses `pipenv run test` to run the Python tests.
 
-3. **Build:**
-   - Uses `docker build` to produce the Docker image (`mp-backend`).
+3. **Build:** Uses `docker build` to produce the Docker image (`mp-backend`).
 
 4. **Deploy (CD only):**
    - Tags the Docker image with the Git SHA (e.g., `:{{ github.sha }}`).
