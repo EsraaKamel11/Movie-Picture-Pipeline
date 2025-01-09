@@ -154,14 +154,23 @@ terraform init
 3. When successful, you should see references to the created components in your terminal.
 
 <p align="center">
-  <img src="Screenshots/error-terraform_apply-federated_user.jpeg" alt="Error: Terraform Apply with Federated User">
-</p>
-
-<p align="center">
   <img src="Screenshots/success-terraform_apply-new_user.jpeg" alt="Success: Terraform Apply with New User">
 </p>
+   Take note of the Terraform outputs. You'll need these later as you work on the project. You can always retrieve these values later with this command:
+   
+   ```bash
+   cd setup/terraform
+   terraform output
+   ```
+##Troubleshooting IAM access error when applying a Terraform template
 
-   **Note:** If you encounter issues, it may be because you ran `terraform apply` as a Udacity federated user account. Follow Step 3 above to create a new user and re-run `terraform apply` as the newly created user.
+If you encounter issues, that look like the following:
+
+<p align="center">
+  <img src="Screenshots/error-terraform_apply-federated_user.jpeg" alt="Error: Terraform Apply with Federated User">
+</p>
+   
+it may be because you ran `terraform apply` as a Udacity federated user account. Follow Step 3 above to create a new user and re-run `terraform apply` as the newly created user.
 
 ### Step 4: Generate AWS Access Keys for GitHub Actions
 
