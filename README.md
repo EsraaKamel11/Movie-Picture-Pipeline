@@ -123,7 +123,7 @@ tfenv use 1.3.9
 cd /workspace/setup/terraform
 terraform init
 ```
-![Confirm Terraform Setup and Initialized](Screenshots/Confirm Terraform Setup and Initialized.jpeg)
+![Terraform Initialized](Screenshots/confirm-terraform-setup-and-initialized.jpeg)
 
 ### Step 2: Create an administrator user in AWS
 
