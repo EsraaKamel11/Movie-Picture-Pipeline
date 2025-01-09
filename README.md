@@ -13,19 +13,16 @@ Additionally, these workflows only run if there are changes in the `frontend` fo
 
 ### Jobs
 
-1. **Lint:**
-   - Uses `npm run lint` to check code quality.
+1. **Lint:** Uses `npm run lint` to check code quality.
 
-2. **Test:**
-   - Uses `npm test` in CI mode (`CI=true npm test`).
+2. **Test:** Uses `npm test` in CI mode (`CI=true npm test`).
 
 3. **Build:**
    - Uses `docker build` to produce the Docker image (`mp-frontend`).
    - In the CD workflow, the image is tagged using the Git SHA (e.g., `:{{ github.sha }}`) and pushed to ECR.
    - The environment variable `REACT_APP_MOVIE_API_URL` is used in the Docker build args to point the frontend to the backend API.
 
-4. **Deploy (CD only):**
-   - Deploys to the Kubernetes cluster via `kustomize` and `kubectl`.
+4. **Deploy (CD only):** Deploys to the Kubernetes cluster via `kustomize` and `kubectl`.
 
 ## Backend Workflow
 
