@@ -162,7 +162,7 @@ terraform init
    cd setup/terraform
    terraform output
    ```
-##Troubleshooting IAM access error when applying a Terraform template
+## Troubleshooting IAM access error when applying a Terraform template
 
 If you encounter issues, that look like the following:
 
