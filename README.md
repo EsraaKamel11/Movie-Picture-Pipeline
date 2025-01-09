@@ -179,6 +179,38 @@ Generate AWS credentials for the IAM user account that GitHub Actions will use t
 
 ### Step 5: Add GitHub Action User to Kubernetes
 
+## GitHub Secrets
+
+Store the following secrets in your GitHub repository settings under **Settings → Secrets and variables → Actions**:
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_REGION` (e.g., `us-east-1`)
+- `ECR_REPOSITORY_FRONTEND` (the ECR URL for your frontend repo)
+- `ECR_REPOSITORY_BACKEND` (the ECR URL for your backend repo)
+- `CLUSTER_NAME` (EKS cluster name)
+
+These secrets are used by the GitHub Actions workflows to push images and deploy to EKS.
+
+## Usage
+
+- **Continuous Integration** triggers on pull requests targeting `main` (or manually).
+- **Continuous Deployment** triggers on push to `main` (or manually).
+
+When triggered, each workflow will:
+
+1. Install dependencies (`npm` or `pipenv`)
+2. Lint the code
+3. Run tests
+4. Build Docker images (only if lint/test pass)
+5. Tag images with `{{ github.sha }}`
+6. Push images to ECR
+7. Update Kubernetes manifests via `kustomize` and apply them to the EKS cluster
+
+Once deployed, the `mp-frontend` should display a list of movies from `mp-backend`.
+
+### Step 5: Add GitHub Action User to Kubernetes
+
 Add the `github-action-user` IAM user ARN to the Kubernetes configuration to allow that user to execute `kubectl` commands against the cluster. To do this, run the `init.sh` helper script in the setup folder:
 
 ```bash
