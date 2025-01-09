@@ -225,3 +225,60 @@ This script performs the following steps:
 3. Cleans up by removing the downloaded AWS IAM Authenticator binary.
 
 This operation needs to be performed only once. You can run this shell script directly in your terminal.
+## Important Commands
+
+### Frontend
+
+- **Install Dependencies:** `npm ci`
+- **Lint:** `npm run lint`
+- **Test:** `CI=true npm test`
+- **Build Docker Image:**
+
+  ```bash
+  docker build \
+    --build-arg REACT_APP_MOVIE_API_URL=http://localhost:5000 \
+    -t mp-frontend:latest .
+  ```
+
+- **Run Locally:**
+
+  ```bash
+  docker run -p 3000:3000 --name mp-frontend -d mp-frontend
+  ```
+
+### Backend
+
+- **Install Dependencies:** `pipenv install`
+- **Lint:** `pipenv run lint`
+- **Test:** `pipenv run test`
+- **Build Docker Image:**
+
+  ```bash
+  docker build -t mp-backend:latest .
+  ```
+
+- **Run Locally:**
+
+  ```bash
+  docker run -p 5000:5000 --name mp-backend -d mp-backend
+  curl http://localhost:5000/movies
+  ```
+
+### Cleaning Up
+
+To avoid incurring unnecessary AWS costs:
+
+- **If you created resources via Terraform:**
+
+  ```bash
+  cd setup/terraform
+  terraform destroy
+  ```
+
+- **If you created resources directly in AWS Console:**
+  - Manually delete the ECR repositories, EKS cluster, and any supporting resources (VPC, subnets, etc.).
+
+## License
+
+This project is licensed under the MIT License. Feel free to use this code as a reference or a starting point for your own CI/CD pipelines.
+
